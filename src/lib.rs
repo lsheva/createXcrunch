@@ -3,7 +3,7 @@ use byteorder::{BigEndian, ByteOrder, LittleEndian};
 use console::Term;
 use fs4::FileExt;
 use itertools::chain;
-use ocl::{Buffer, Context, Device, MemFlags, Platform, ProQue, Program, Queue};
+use ocl::{flags, Buffer, Context, Device, MemFlags, Platform, ProQue, Program, Queue};
 use rand::{thread_rng, Rng};
 use separator::Separatable;
 use std::{
@@ -227,11 +227,25 @@ pub fn gpu(config: Config) -> ocl::Result<()> {
     // set up a controller for terminal output
     let term = Term::stdout();
 
-    // set up a platform to use
-    let platform = Platform::new(ocl::core::default_platform()?);
+    // set up a platform to use, preferring one that exposes GPU devices
+    let default_platform = Platform::new(ocl::core::default_platform()?);
+    let platform = Platform::list()
+        .into_iter()
+        .find(|platform| {
+            Device::list(*platform, Some(flags::DEVICE_TYPE_GPU))
+                .map(|devices| !devices.is_empty())
+                .unwrap_or(false)
+        })
+        .unwrap_or(default_platform);
 
-    // set up the device to use
-    let device = Device::by_idx_wrap(platform, config.gpu_device as usize)?;
+    // set up the device to use, favoring GPUs on the chosen platform
+    let device = match Device::list(platform, Some(flags::DEVICE_TYPE_GPU)) {
+        Ok(gpus) if !gpus.is_empty() => {
+            let idx = (config.gpu_device as usize) % gpus.len();
+            gpus[idx].clone()
+        }
+        _ => Device::by_idx_wrap(platform, config.gpu_device as usize)?,
+    };
 
     // set up the context to use
     let context = Context::builder()
