@@ -196,6 +196,7 @@ fn test_create3_random() {
             pattern: "bbXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
                 .to_owned()
                 .into_boxed_str(),
+            case_sensitive: false,
         },
         [87u32; 1],
     )
@@ -274,6 +275,7 @@ fn test_create3_caller() {
             pattern: "bbXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
                 .to_owned()
                 .into_boxed_str(),
+            case_sensitive: false,
         },
         [152u32; 1],
     )
@@ -355,6 +357,7 @@ fn test_create2_crosschain() {
             pattern: "bbXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
                 .to_owned()
                 .into_boxed_str(),
+            case_sensitive: false,
         },
         [45u32; 1],
     )
@@ -456,6 +459,7 @@ fn test_create2_crosschain_caller() {
             pattern: "bbXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
                 .to_owned()
                 .into_boxed_str(),
+            case_sensitive: false,
         },
         [50u32; 1],
     )
@@ -470,4 +474,133 @@ fn string_to_addr_bytes(s: &str) -> [u8; 20] {
     let bytes = decode(s).unwrap();
     addr.copy_from_slice(&bytes);
     addr
+}
+
+#[rstest]
+fn test_case_sensitive_matching_gpu() {
+    // Mixed-case pattern with case_sensitive: true should still find the same
+    // address on the GPU, because the kernel lowercases the pattern internally.
+    let address = try_nonce(
+        SaltVariant::Random,
+        CreateXVariant::Create3,
+        RewardVariant::Matching {
+            pattern: "BbXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                .to_owned()
+                .into_boxed_str(),
+            case_sensitive: true,
+        },
+        [87u32; 1],
+    )
+    .unwrap();
+
+    assert_eq!("0xbb10c35fdadda68390f7f58b4378ad07826a5471", address);
+}
+
+#[rstest]
+fn test_case_sensitive_matching_host_filter() {
+    use alloy_primitives::Address;
+    use createxcrunch::matches_checksummed_pattern;
+
+    // Use known addresses from other tests and compute their EIP-55 checksums
+    let test_addresses = [
+        "bb10c35fdadda68390f7f58b4378ad07826a5471",
+        "bb660249e599b0d9b21015fa7ebd97fd78141737",
+        "bbf5e44c1302d0228d95ff916ee5aa3ee39334bb",
+        "00945498be46467fee556bf2f2f3dcfbd1a6765a",
+    ];
+
+    for addr_hex in test_addresses {
+        let addr_bytes = decode(addr_hex).unwrap();
+        let checksummed = Address::from_slice(&addr_bytes).to_checksum(None);
+        let addr_no_prefix = checksummed.strip_prefix("0x").unwrap();
+
+        // Exact EIP-55 pattern should match
+        assert!(
+            matches_checksummed_pattern(&checksummed, addr_no_prefix),
+            "Exact EIP-55 pattern should match for {}",
+            checksummed
+        );
+
+        // All wildcards should match
+        assert!(
+            matches_checksummed_pattern(
+                &checksummed,
+                "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            ),
+            "All-wildcard pattern should match for {}",
+            checksummed
+        );
+
+        // Flipping case of the first alphabetic character should fail
+        for (i, ch) in addr_no_prefix.chars().enumerate() {
+            if ch.is_ascii_alphabetic() {
+                let flipped = if ch.is_ascii_uppercase() {
+                    ch.to_ascii_lowercase()
+                } else {
+                    ch.to_ascii_uppercase()
+                };
+                let mut wrong = addr_no_prefix.to_string().into_bytes();
+                wrong[i] = flipped as u8;
+                let wrong = String::from_utf8(wrong).unwrap();
+                assert!(
+                    !matches_checksummed_pattern(&checksummed, &wrong),
+                    "Flipped case at position {} should not match for {}",
+                    i,
+                    checksummed
+                );
+                break;
+            }
+        }
+    }
+}
+
+#[rstest]
+fn test_case_sensitive_matching_eip55_vectors() {
+    use createxcrunch::matches_checksummed_pattern;
+
+    // EIP-55 test vectors
+    let checksummed = "0x52908400098527886E0F7030069857D2E4169EE7";
+    assert!(matches_checksummed_pattern(
+        checksummed,
+        "52908400098527886E0F7030069857D2E4169EE7"
+    ));
+    // Wrong case on 'E' -> 'e' at position 18
+    assert!(!matches_checksummed_pattern(
+        checksummed,
+        "52908400098527886e0F7030069857D2E4169EE7"
+    ));
+    // Wildcards over case-sensitive positions should match
+    assert!(matches_checksummed_pattern(
+        checksummed,
+        "529084XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXE7"
+    ));
+
+    // All-lowercase EIP-55 checksum
+    let checksummed = "0xde709f2102306220921060314715629080e2fb77";
+    assert!(matches_checksummed_pattern(
+        checksummed,
+        "de709f2102306220921060314715629080e2fb77"
+    ));
+    // Uppercase in pattern should NOT match lowercase checksum
+    assert!(!matches_checksummed_pattern(
+        checksummed,
+        "DE709f2102306220921060314715629080e2fb77"
+    ));
+
+    // Mixed-case EIP-55 checksum
+    let checksummed = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
+    assert!(matches_checksummed_pattern(
+        checksummed,
+        "5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+    ));
+    // 'F' -> 'f' should fail
+    assert!(!matches_checksummed_pattern(
+        checksummed,
+        "5aAeb6053f3E94C9b9A09f33669435E7Ef1BeAed"
+    ));
+    // Wildcard over the 'F' position should still pass
+    assert!(matches_checksummed_pattern(
+        checksummed,
+        "5aAeb605XX3E94C9b9A09f33669435E7Ef1BeAed"
+    ));
 }

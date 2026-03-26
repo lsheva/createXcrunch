@@ -14,6 +14,7 @@ fn main() {
             let caller = args.cli_args.caller;
             let chain_id = args.cli_args.chain_id;
             let use_metal = args.cli_args.use_metal;
+            let case_sensitive = args.cli_args.case_sensitive;
             let init_code_hash = args.init_code_hash;
             let reward = match (
                 args.cli_args.zeros,
@@ -41,7 +42,10 @@ fn main() {
                         .unwrap_or(&pattern)
                         .to_owned()
                         .into_boxed_str();
-                    RewardVariant::Matching { pattern: pattern }
+                    RewardVariant::Matching {
+                        pattern,
+                        case_sensitive,
+                    }
                 }
                 _ => unreachable!(),
             };
@@ -92,6 +96,7 @@ fn main() {
             let caller = args.caller;
             let chain_id = args.chain_id;
             let use_metal = args.use_metal;
+            let case_sensitive = args.case_sensitive;
             let reward = match (args.zeros, args.total, args.either, args.pattern) {
                 (Some(zeros), None, false, None) => RewardVariant::LeadingZeros {
                     zeros_threshold: zeros,
@@ -113,7 +118,10 @@ fn main() {
                         .unwrap_or(&pattern)
                         .to_owned()
                         .into_boxed_str();
-                    RewardVariant::Matching { pattern }
+                    RewardVariant::Matching {
+                        pattern,
+                        case_sensitive,
+                    }
                 }
                 _ => unreachable!(),
             };

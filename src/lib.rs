@@ -57,6 +57,7 @@ pub enum RewardVariant {
     },
     Matching {
         pattern: Box<str>,
+        case_sensitive: bool,
     },
 }
 
@@ -143,7 +144,7 @@ impl<'a> Config<'a> {
                 validate_zeros_threshold(leading_zeros_threshold)?;
                 validate_zeros_threshold(total_zeros_threshold)?;
             }
-            RewardVariant::Matching { pattern } => {
+            RewardVariant::Matching { pattern, .. } => {
                 if pattern.len() != 40 {
                     return Err("matching pattern must be 40 characters long");
                 }
@@ -217,6 +218,18 @@ impl<'a> Config<'a> {
             use_metal,
         })
     }
+}
+
+pub fn matches_checksummed_pattern(checksummed_address: &str, pattern: &str) -> bool {
+    let addr = checksummed_address
+        .strip_prefix("0x")
+        .unwrap_or(checksummed_address);
+    if addr.len() != pattern.len() {
+        return false;
+    }
+    addr.chars()
+        .zip(pattern.chars())
+        .all(|(a, p)| p == 'X' || a == p)
 }
 
 /// Adapted from https://github.com/0age/create2crunch
@@ -419,8 +432,12 @@ pub fn gpu(config: Config) -> ocl::Result<()> {
                         "with {} leading or {} total zero byte(s)",
                         leading_zeros_threshold, total_zeros_threshold
                     ),
-                    RewardVariant::Matching { ref pattern } => {
-                        format!("matching pattern 0x{}", pattern)
+                    RewardVariant::Matching { ref pattern, case_sensitive } => {
+                        if case_sensitive {
+                            format!("matching pattern 0x{} (EIP-55 case-sensitive)", pattern)
+                        } else {
+                            format!("matching pattern 0x{}", pattern)
+                        }
                     }
                 };
 
@@ -529,11 +546,22 @@ pub fn gpu(config: Config) -> ocl::Result<()> {
 
         let checksummed_address =
             Address::from_slice(&address).to_checksum(None);
+
+        if let RewardVariant::Matching {
+            ref pattern,
+            case_sensitive: true,
+        } = config.reward
+        {
+            if !matches_checksummed_pattern(&checksummed_address, pattern) {
+                continue;
+            }
+        }
+
         let output = format!("0x{} => {}", hex::encode(salt), checksummed_address);
 
         let show = format!("{output} ({leading} / {total})");
         match config.reward {
-            RewardVariant::Matching { pattern: _ } => {
+            RewardVariant::Matching { .. } => {
                 found_list.push(output.to_string());
             }
             _ => {
@@ -625,9 +653,13 @@ pub fn mk_kernel_src(config: &Config) -> String {
             )
             .unwrap();
         }
-        RewardVariant::Matching { pattern } => {
+        RewardVariant::Matching { pattern, .. } => {
+            let gpu_pattern: String = pattern
+                .chars()
+                .map(|c| if c == 'X' { c } else { c.to_ascii_lowercase() })
+                .collect();
             writeln!(src, "#define LEADING_ZEROES 0").unwrap();
-            writeln!(src, "#define PATTERN() \"{pattern}\"").unwrap();
+            writeln!(src, "#define PATTERN() \"{gpu_pattern}\"").unwrap();
             writeln!(src, "#define SUCCESS_CONDITION() isMatching(digest)").unwrap();
         }
     };

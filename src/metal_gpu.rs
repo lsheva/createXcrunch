@@ -198,8 +198,12 @@ pub fn gpu_metal(config: Config) -> Result<(), String> {
                         "with {} leading or {} total zero byte(s)",
                         leading_zeros_threshold, total_zeros_threshold
                     ),
-                    RewardVariant::Matching { ref pattern } => {
-                        format!("matching pattern 0x{}", pattern)
+                    RewardVariant::Matching { ref pattern, case_sensitive } => {
+                        if case_sensitive {
+                            format!("matching pattern 0x{} (EIP-55 case-sensitive)", pattern)
+                        } else {
+                            format!("matching pattern 0x{}", pattern)
+                        }
                     }
                 };
 
@@ -302,6 +306,17 @@ pub fn gpu_metal(config: Config) -> Result<(), String> {
 
         let checksummed_address =
             Address::from_slice(&address).to_checksum(None);
+
+        if let RewardVariant::Matching {
+            ref pattern,
+            case_sensitive: true,
+        } = config.reward
+        {
+            if !crate::matches_checksummed_pattern(&checksummed_address, pattern) {
+                continue;
+            }
+        }
+
         let output = format!("0x{} => {}", hex::encode(salt), checksummed_address);
 
         let show = format!("{output} ({leading} / {total})");

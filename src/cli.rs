@@ -8,18 +8,8 @@ pub struct Cli {
     pub command: Commands,
 }
 
-fn to_lowercase_boxed_str(s: &str) -> Result<Box<str>, &'static str> {
-    let modified_string: String = s
-        .chars()
-        .map(|c| {
-            if c != 'X' {
-                c.to_lowercase().to_string()
-            } else {
-                c.to_string()
-            }
-        })
-        .collect();
-    Ok(modified_string.into_boxed_str())
+fn to_boxed_str(s: &str) -> Result<Box<str>, &'static str> {
+    Ok(s.to_string().into_boxed_str())
 }
 
 #[derive(Args)]
@@ -108,12 +98,22 @@ pub struct CliArgs {
         long = "matching",
         short = 'm',
         group = "search-criteria",
-        long_help = "Matching pattern for the contract address. Cannot be used in combination with --leading.\n\nExample: --matching ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed.",
+        long_help = "Matching pattern for the contract address. Cannot be used in combination with --leading.\n\nExample: --matching ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed.\n\nUse --case-sensitive to match against the EIP-55 checksummed address.",
         help_heading = "Crunching options",
         conflicts_with_all = &["zeros", "total"],
-        value_parser = to_lowercase_boxed_str
+        value_parser = to_boxed_str
     )]
     pub pattern: Option<Box<str>>,
+
+    #[arg(
+        id = "case-sensitive",
+        long = "case-sensitive",
+        long_help = "Enable case-sensitive pattern matching against the EIP-55 checksummed address.\n\nWhen enabled, uppercase letters (A-F) in the pattern must match the checksum casing.\nMust be used with --matching.",
+        requires = "pattern",
+        action = ArgAction::SetTrue,
+        help_heading = "Crunching options"
+    )]
+    pub case_sensitive: bool,
 
     #[arg(
         id = "output",

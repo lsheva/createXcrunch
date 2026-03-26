@@ -37,7 +37,8 @@ mod metal_tests {
                 init_code_hash: [0u8; 32] 
             },
             reward: RewardVariant::Matching { 
-                pattern: "ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed".to_owned().into_boxed_str()
+                pattern: "ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed".to_owned().into_boxed_str(),
+                case_sensitive: false,
             },
             output: "test_output.txt",
             use_metal: true,
@@ -75,6 +76,59 @@ mod metal_tests {
         assert!(kernel_src.contains("#define SUCCESS_CONDITION() hasTotal(digest, 2)"));
     }
     
+    #[test]
+    fn test_metal_kernel_case_sensitive_pattern() {
+        let config = Config {
+            gpu_device: 0,
+            factory_address: [
+                186, 94, 208, 153, 99, 61, 59, 49, 62, 77, 95, 123, 220, 19, 5, 211, 194, 139, 165, 237,
+            ],
+            salt_variant: SaltVariant::Random,
+            create_variant: CreateXVariant::Create2 { 
+                init_code_hash: [0u8; 32] 
+            },
+            reward: RewardVariant::Matching { 
+                pattern: "Ba5eDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXBa5eD".to_owned().into_boxed_str(),
+                case_sensitive: true,
+            },
+            output: "test_output.txt",
+            use_metal: true,
+        };
+        
+        let kernel_src = createxcrunch::metal_kernel::mk_metal_kernel_src(&config);
+        
+        // The kernel source must contain the lowercased pattern (GPU always matches case-insensitively)
+        assert!(kernel_src.contains("ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed"));
+        // It should NOT contain the original mixed-case pattern in the kernel
+        assert!(!kernel_src.contains("Ba5eD"));
+        assert!(kernel_src.contains("#define SUCCESS_CONDITION() isMatching(&pattern[0], digest)"));
+    }
+
+    #[test]
+    fn test_metal_kernel_case_insensitive_pattern() {
+        let config = Config {
+            gpu_device: 0,
+            factory_address: [
+                186, 94, 208, 153, 99, 61, 59, 49, 62, 77, 95, 123, 220, 19, 5, 211, 194, 139, 165, 237,
+            ],
+            salt_variant: SaltVariant::Random,
+            create_variant: CreateXVariant::Create2 { 
+                init_code_hash: [0u8; 32] 
+            },
+            reward: RewardVariant::Matching { 
+                pattern: "BA5EDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXBA5ED".to_owned().into_boxed_str(),
+                case_sensitive: false,
+            },
+            output: "test_output.txt",
+            use_metal: true,
+        };
+        
+        let kernel_src = createxcrunch::metal_kernel::mk_metal_kernel_src(&config);
+        
+        // Even with uppercase input and case_sensitive=false, kernel should have lowercased pattern
+        assert!(kernel_src.contains("ba5edXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXba5ed"));
+    }
+
     #[test]
     fn test_metal_kernel_crosschain_variant() {
         let mut chain_id = [0u8; 32];

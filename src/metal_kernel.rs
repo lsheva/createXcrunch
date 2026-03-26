@@ -72,10 +72,14 @@ pub fn mk_metal_kernel_src(config: &Config) -> String {
             )
             .unwrap();
         }
-        RewardVariant::Matching { pattern } => {
+        RewardVariant::Matching { pattern, .. } => {
+            let gpu_pattern: String = pattern
+                .chars()
+                .map(|c| if c == 'X' { c } else { c.to_ascii_lowercase() })
+                .collect();
             writeln!(src, "#define LEADING_ZEROES 0").unwrap();
-            writeln!(src, "constant char pattern[41] = \"{pattern}\";").unwrap();
-            writeln!(src, "#define PATTERN() \"{pattern}\"").unwrap();
+            writeln!(src, "constant char pattern[41] = \"{gpu_pattern}\";").unwrap();
+            writeln!(src, "#define PATTERN() \"{gpu_pattern}\"").unwrap();
             writeln!(src, "#define SUCCESS_CONDITION() isMatching(&pattern[0], digest)").unwrap();
         }
     };
