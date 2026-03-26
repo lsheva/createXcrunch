@@ -15,6 +15,7 @@ use std::{
 use terminal_size::{terminal_size, Height};
 
 pub mod cli;
+pub mod checksum;
 
 #[cfg(target_os = "macos")]
 pub mod metal_gpu;
@@ -526,7 +527,7 @@ pub fn gpu(config: Config) -> ocl::Result<()> {
             total += 1;
         }
 
-        let output = format!("0x{} => 0x{}", hex::encode(salt), hex::encode(address),);
+        let output = format!("0x{} => {}", hex::encode(salt), crate::checksum::to_checksum_address(&address));
 
         let show = format!("{output} ({leading} / {total})");
         match config.reward {
