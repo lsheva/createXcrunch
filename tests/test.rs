@@ -22,9 +22,9 @@ fn try_nonce(
         salt_variant,
         create_variant,
         reward,
-        // This field will be ignored for tests
         output: "output.txt",
         use_metal: true,
+        stop_on_find: false,
     };
     // set up a platform to use
     let platform = Platform::new(ocl::core::default_platform()?);

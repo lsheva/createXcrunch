@@ -333,5 +333,10 @@ pub fn gpu_metal(config: Config) -> Result<(), String> {
         writeln!(&file, "{output}").expect("Couldn't write to output file.");
         file.unlock().expect("Couldn't unlock file.");
         found += 1;
+
+        if config.stop_on_find {
+            println!("\n{output}");
+            break Ok(());
+        }
     }
 }

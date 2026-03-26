@@ -83,6 +83,7 @@ pub struct Config<'a> {
     pub reward: RewardVariant,
     pub output: &'a str,
     pub use_metal: bool,
+    pub stop_on_find: bool,
 }
 
 impl<'a> Config<'a> {
@@ -95,6 +96,7 @@ impl<'a> Config<'a> {
         reward: RewardVariant,
         output: &'a str,
         use_metal: bool,
+        stop_on_find: bool,
     ) -> Result<Self, &'static str> {
         // convert main arguments from hex string to vector of bytes
         let factory_address_vec =
@@ -216,6 +218,7 @@ impl<'a> Config<'a> {
             reward,
             output,
             use_metal,
+            stop_on_find,
         })
     }
 }
@@ -575,6 +578,11 @@ pub fn gpu(config: Config) -> ocl::Result<()> {
 
         file.unlock().expect("Couldn't unlock file.");
         found += 1;
+
+        if config.stop_on_find {
+            println!("\n{output}");
+            break Ok(());
+        }
     }
 }
 

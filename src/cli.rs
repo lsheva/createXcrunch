@@ -116,6 +116,16 @@ pub struct CliArgs {
     pub case_sensitive: bool,
 
     #[arg(
+        id = "one",
+        long = "one",
+        short = '1',
+        long_help = "Stop mining after the first matching address is found.",
+        action = ArgAction::SetTrue,
+        help_heading = "Crunching options"
+    )]
+    pub one: bool,
+
+    #[arg(
         id = "output",
         long,
         short,

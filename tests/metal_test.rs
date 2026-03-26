@@ -15,6 +15,7 @@ mod metal_tests {
             reward: RewardVariant::LeadingZeros { zeros_threshold: 1 },
             output: "test_output.txt",
             use_metal: true,
+            stop_on_find: false,
         };
         
         let kernel_src = createxcrunch::metal_kernel::mk_metal_kernel_src(&config);
@@ -42,6 +43,7 @@ mod metal_tests {
             },
             output: "test_output.txt",
             use_metal: true,
+            stop_on_find: false,
         };
         
         let kernel_src = createxcrunch::metal_kernel::mk_metal_kernel_src(&config);
@@ -65,6 +67,7 @@ mod metal_tests {
             reward: RewardVariant::TotalZeros { zeros_threshold: 2 },
             output: "test_output.txt",
             use_metal: true,
+            stop_on_find: false,
         };
         
         let kernel_src = createxcrunch::metal_kernel::mk_metal_kernel_src(&config);
@@ -93,6 +96,7 @@ mod metal_tests {
             },
             output: "test_output.txt",
             use_metal: true,
+            stop_on_find: false,
         };
         
         let kernel_src = createxcrunch::metal_kernel::mk_metal_kernel_src(&config);
@@ -121,6 +125,7 @@ mod metal_tests {
             },
             output: "test_output.txt",
             use_metal: true,
+            stop_on_find: false,
         };
         
         let kernel_src = createxcrunch::metal_kernel::mk_metal_kernel_src(&config);
@@ -147,6 +152,7 @@ mod metal_tests {
             },
             output: "test_output.txt",
             use_metal: true,
+            stop_on_find: false,
         };
         
         let kernel_src = createxcrunch::metal_kernel::mk_metal_kernel_src(&config);

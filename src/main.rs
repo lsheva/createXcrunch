@@ -15,6 +15,7 @@ fn main() {
             let chain_id = args.cli_args.chain_id;
             let use_metal = args.cli_args.use_metal;
             let case_sensitive = args.cli_args.case_sensitive;
+            let stop_on_find = args.cli_args.one;
             let init_code_hash = args.init_code_hash;
             let reward = match (
                 args.cli_args.zeros,
@@ -60,6 +61,7 @@ fn main() {
                 reward,
                 &output,
                 use_metal,
+                stop_on_find,
             ) {
                 Ok(config) => {
                     #[cfg(target_os = "macos")]
@@ -97,6 +99,7 @@ fn main() {
             let chain_id = args.chain_id;
             let use_metal = args.use_metal;
             let case_sensitive = args.case_sensitive;
+            let stop_on_find = args.one;
             let reward = match (args.zeros, args.total, args.either, args.pattern) {
                 (Some(zeros), None, false, None) => RewardVariant::LeadingZeros {
                     zeros_threshold: zeros,
@@ -136,6 +139,7 @@ fn main() {
                 reward,
                 &output,
                 use_metal,
+                stop_on_find,
             ) {
                 Ok(config) => {
                     #[cfg(target_os = "macos")]
