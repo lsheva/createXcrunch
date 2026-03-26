@@ -527,7 +527,9 @@ pub fn gpu(config: Config) -> ocl::Result<()> {
             total += 1;
         }
 
-        let output = format!("0x{} => {}", hex::encode(salt), crate::checksum::to_checksum_address(&address));
+        let checksummed_address =
+            Address::from_slice(&address).to_checksum(None);
+        let output = format!("0x{} => {}", hex::encode(salt), checksummed_address);
 
         let show = format!("{output} ({leading} / {total})");
         match config.reward {

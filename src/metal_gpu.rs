@@ -1,6 +1,6 @@
 #[cfg(target_os = "macos")]
 use crate::{Config, RewardVariant, SaltVariant, CreateXVariant};
-use alloy_primitives::{hex, FixedBytes};
+use alloy_primitives::{hex, Address, FixedBytes};
 use byteorder::{BigEndian, ByteOrder, LittleEndian};
 use console::Term;
 use fs4::FileExt;
@@ -300,7 +300,9 @@ pub fn gpu_metal(config: Config) -> Result<(), String> {
             total += 1;
         }
 
-        let output = format!("0x{} => 0x{}", hex::encode(salt), hex::encode(address));
+        let checksummed_address =
+            Address::from_slice(&address).to_checksum(None);
+        let output = format!("0x{} => {}", hex::encode(salt), checksummed_address);
 
         let show = format!("{output} ({leading} / {total})");
         match config.reward {
