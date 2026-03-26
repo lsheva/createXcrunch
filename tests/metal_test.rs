@@ -45,8 +45,8 @@ mod metal_tests {
         
         let kernel_src = createxcrunch::metal_kernel::mk_metal_kernel_src(&config);
         
-        // Check pattern matching setup
-        assert!(kernel_src.contains("constant char pattern[40]"));
+        // Check pattern matching setup (address length + 1 for null terminator)
+        assert!(kernel_src.contains("constant char pattern[41]"));
         assert!(kernel_src.contains("#define SUCCESS_CONDITION() isMatching(&pattern[0], digest)"));
     }
     

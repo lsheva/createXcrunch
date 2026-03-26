@@ -74,7 +74,7 @@ pub fn mk_metal_kernel_src(config: &Config) -> String {
         }
         RewardVariant::Matching { pattern } => {
             writeln!(src, "#define LEADING_ZEROES 0").unwrap();
-            writeln!(src, "constant char pattern[40] = \"{pattern}\";").unwrap();
+            writeln!(src, "constant char pattern[41] = \"{pattern}\";").unwrap();
             writeln!(src, "#define PATTERN() \"{pattern}\"").unwrap();
             writeln!(src, "#define SUCCESS_CONDITION() isMatching(&pattern[0], digest)").unwrap();
         }
